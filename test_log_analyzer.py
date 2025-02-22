@@ -1,20 +1,17 @@
-import pytest
 import json
 from unittest.mock import mock_open, patch
-from log_analyzer import (
-    load_config,
-    find_last_log,
-    parse_log_file,
-    LogEntry,
-    setup_logging,
-)
+
+import pytest
+
+from log_analyzer import (LogEntry, find_last_log, load_config, parse_log_file,
+                          setup_logging)
 
 
 def test_load_config_valid():
     mock_config = {
         "REPORT_SIZE": 20,
         "REPORT_DIR": "/tmp/reports",
-        "LOG_DIR": "/tmp/logs"
+        "LOG_DIR": "/tmp/logs",
     }
 
     with patch("builtins.open", mock_open(read_data=json.dumps(mock_config))):
@@ -81,4 +78,3 @@ def test_log_error_handling(mocker):
         mock_logger().error("Unexpected error occurred.", exc_info=True)
 
     mock_logger().error.assert_called_with("Unexpected error occurred.", exc_info=True)
-

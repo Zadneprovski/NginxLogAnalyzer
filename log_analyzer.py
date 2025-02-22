@@ -1,21 +1,18 @@
-import os
-import re
+import argparse
 import gzip
 import json
+import os
+import re
 import statistics
-from typing import List
-import argparse
-import structlog
 from collections import defaultdict
 from datetime import datetime
 from string import Template
+from typing import List
+
+import structlog
 
 # Дефолтный конфиг
-DEFAULT_CONFIG = {
-    "REPORT_SIZE": 10,
-    "REPORT_DIR": "./reports",
-    "LOG_DIR": "./log"
-}
+DEFAULT_CONFIG = {"REPORT_SIZE": 10, "REPORT_DIR": "./reports", "LOG_DIR": "./log"}
 
 # Логирование
 logger = structlog.get_logger()
@@ -24,18 +21,19 @@ logger = structlog.get_logger()
 def setup_logging(log_file: str = None):
     processors = [
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer()
+        structlog.processors.JSONRenderer(),
     ]
 
     if log_file:
         structlog.configure(
             processors=processors,
-            logger_factory=structlog.PrintLoggerFactory(file=open(log_file, "a", encoding="utf-8"))
+            logger_factory=structlog.PrintLoggerFactory(
+                file=open(log_file, "a", encoding="utf-8")
+            ),
         )
     else:
         structlog.configure(
-            processors=processors,
-            logger_factory=structlog.PrintLoggerFactory()
+            processors=processors, logger_factory=structlog.PrintLoggerFactory()
         )
 
 
@@ -73,7 +71,9 @@ def find_last_log(log_dir: str, pattern: str) -> str | None:
     if not files:
         logger.info("No log files found.")
         return None
-    last_log = max(files, key=lambda f: datetime.strptime(re.match(pattern, f).group(1), "%Y%m%d"))
+    last_log = max(
+        files, key=lambda f: datetime.strptime(re.match(pattern, f).group(1), "%Y%m%d")
+    )
     return os.path.join(log_dir, last_log)
 
 
@@ -83,10 +83,10 @@ def parse_log_file(file_path: str) -> List[LogEntry]:
 
     # Регулярки для парсинга URL и времени
     url_pattern = r'"(?:GET|POST|PUT|DELETE) (/[^"]+)"'
-    time_pattern = r'(\d+\.\d+)$'
+    time_pattern = r"(\d+\.\d+)$"
 
     # Открываем файл логов (сжаты или обычные)
-    with gzip.open(file_path, 'rt', encoding='utf-8') as log_file:
+    with gzip.open(file_path, "rt", encoding="utf-8") as log_file:
         for line in log_file:
             # Ищем URL
             url_match = re.search(url_pattern, line)
@@ -121,22 +121,26 @@ def generate_report(log_entries: list, report_dir: str, report_size: int):
     total_count = sum(stats["count"] for stats in url_stats.values())
     total_time = sum(stats["time_sum"] for stats in url_stats.values())
 
-    sorted_urls = sorted(url_stats.items(), key=lambda x: x[1]["time_sum"], reverse=True)[:report_size]
+    sorted_urls = sorted(
+        url_stats.items(), key=lambda x: x[1]["time_sum"], reverse=True
+    )[:report_size]
 
     # Преобразуем статистику в формат для шаблона
-    table_json = json.dumps([
-        {
-            "count": stats["count"],
-            "time_avg": sum(stats["request_times"]) / len(stats["request_times"]),
-            "time_max": max(stats["request_times"]),
-            "time_sum": stats["time_sum"],
-            "url": url,
-            "time_med": statistics.median(stats["request_times"]),
-            "time_perc": (stats["time_sum"] / total_time) * 100,
-            "count_perc": (stats["count"] / total_count) * 100,
-        }
-        for url, stats in sorted_urls
-    ])
+    table_json = json.dumps(
+        [
+            {
+                "count": stats["count"],
+                "time_avg": sum(stats["request_times"]) / len(stats["request_times"]),
+                "time_max": max(stats["request_times"]),
+                "time_sum": stats["time_sum"],
+                "url": url,
+                "time_med": statistics.median(stats["request_times"]),
+                "time_perc": (stats["time_sum"] / total_time) * 100,
+                "count_perc": (stats["count"] / total_count) * 100,
+            }
+            for url, stats in sorted_urls
+        ]
+    )
 
     # Создание отчета
     date_str = datetime.now().strftime("%Y.%m.%d")
@@ -155,7 +159,9 @@ def generate_report(log_entries: list, report_dir: str, report_size: int):
 # Основной процесс
 def main():
     parser = argparse.ArgumentParser(description="Log Analyzer")
-    parser.add_argument("--config", type=str, default="config.json", help="Path to configuration file")
+    parser.add_argument(
+        "--config", type=str, default="config.json", help="Path to configuration file"
+    )
     args = parser.parse_args()
 
     try:

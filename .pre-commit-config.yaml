@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 25.1.0  # версия black
+    hooks:
+      - id: black
+        language_version: python3
+
+  - repo: https://github.com/pycqa/isort
+    rev: 6.0.0  # версия isort
+    hooks:
+      - id: isort
+        language_version: python3
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0  # версия mypy
+    hooks:
+      - id: mypy
+        #args: ["--ignore-missing-imports"]
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.2  # версия flake8
+    hooks:
+      - id: flake8
+        language_version: python3
+
+#  - repo: https://github.com/python-poetry/poetry
+#    rev: 2.1.1  # версия poetry
+#    hooks:
+#      - id: poetry
+#        name: poetry run lint
+#        entry: poetry run lint
+#        language: system
