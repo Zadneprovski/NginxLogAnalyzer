@@ -1,0 +1,5 @@
+{
+    "REPORT_DIR": "./reports",
+    "REPORT_SIZE": 5,
+    "LOG_FILE": "log_analyzer.log"
+}
