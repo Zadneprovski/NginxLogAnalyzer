@@ -1,8 +1,11 @@
+import sys
+import os
 import json
 from unittest.mock import mock_open, patch
 
 import pytest
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from log_analyzer import (LogEntry, find_last_log, load_config, parse_log_file,
                           setup_logging)
 

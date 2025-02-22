@@ -1,0 +1,85 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "Poetry installed"
+
+      - name: Install dependencies with Poetry
+        run: |
+          poetry install --no-root --no-interaction
+
+      - name: Run pre-commit hooks
+        run: |
+          poetry run pre-commit run --all-files
+
+  mypy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "Poetry installed"
+
+      - name: Install dependencies with Poetry
+        run: |
+          poetry install --no-root --no-interaction
+
+      - name: Run mypy
+        run: |
+          poetry run mypy .
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "Poetry installed"
+
+      - name: Install dependencies with Poetry
+        run: |
+          poetry install --no-root --no-interaction
+
+      - name: Run tests
+        run: |
+          poetry run pytest tests/

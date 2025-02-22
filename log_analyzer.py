@@ -7,7 +7,7 @@ import statistics
 from collections import defaultdict
 from datetime import datetime
 from string import Template
-from typing import List
+from typing import List, Optional
 
 import structlog
 
@@ -18,7 +18,7 @@ DEFAULT_CONFIG = {"REPORT_SIZE": 10, "REPORT_DIR": "./reports", "LOG_DIR": "./lo
 logger = structlog.get_logger()
 
 
-def setup_logging(log_file: str = None):
+def setup_logging(log_file: Optional[str] = None):
     processors = [
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.JSONRenderer(),
@@ -39,7 +39,7 @@ def setup_logging(log_file: str = None):
 
 # Структура данных для логов
 class LogEntry:
-    def __init__(self, url, request_time):
+    def __init__(self, url: str, request_time: float):
         self.url = url
         self.request_time = request_time
 
@@ -66,13 +66,18 @@ def load_config(config_path: str) -> dict:
 
 
 # Функция для поиска последнего лог-файла
-def find_last_log(log_dir: str, pattern: str) -> str | None:
+def find_last_log(log_dir: str, pattern: str) -> Optional[str]:
     files = [f for f in os.listdir(log_dir) if re.match(pattern, f)]
     if not files:
         logger.info("No log files found.")
         return None
     last_log = max(
-        files, key=lambda f: datetime.strptime(re.match(pattern, f).group(1), "%Y%m%d")
+        files,
+        key=lambda f: (
+            datetime.strptime(re.match(pattern, f).group(1), "%Y%m%d")
+            if re.match(pattern, f)
+            else ""
+        ),
     )
     return os.path.join(log_dir, last_log)
 
@@ -110,16 +115,17 @@ def generate_report(log_entries: list, report_dir: str, report_size: int):
     if not os.path.exists(report_dir):
         os.makedirs(report_dir)
 
-    url_stats = defaultdict(lambda: {"count": 0, "time_sum": 0.0, "request_times": []})
+    url_stats: defaultdict[str, dict[str, float | list[float]]] = defaultdict(
+        lambda: {"count": 0, "time_sum": 0.0, "request_times": []}
+    )
 
     for entry in log_entries:
         url_stats[entry.url]["count"] += 1
         url_stats[entry.url]["time_sum"] += entry.request_time
         url_stats[entry.url]["request_times"].append(entry.request_time)
 
-        # Суммарное количество запросов и времени
-    total_count = sum(stats["count"] for stats in url_stats.values())
-    total_time = sum(stats["time_sum"] for stats in url_stats.values())
+    total_count = sum(float(stats["count"]) for stats in url_stats.values())
+    total_time = sum(float(stats["time_sum"]) for stats in url_stats.values())
 
     sorted_urls = sorted(
         url_stats.items(), key=lambda x: x[1]["time_sum"], reverse=True
@@ -130,13 +136,27 @@ def generate_report(log_entries: list, report_dir: str, report_size: int):
         [
             {
                 "count": stats["count"],
-                "time_avg": sum(stats["request_times"]) / len(stats["request_times"]),
-                "time_max": max(stats["request_times"]),
+                "time_avg": (
+                    sum(stats["request_times"]) / len(stats["request_times"])
+                    if len(stats["request_times"]) > 0
+                    else 0
+                ),
+                "time_max": (
+                    max(stats["request_times"]) if stats["request_times"] else 0
+                ),
                 "time_sum": stats["time_sum"],
                 "url": url,
-                "time_med": statistics.median(stats["request_times"]),
-                "time_perc": (stats["time_sum"] / total_time) * 100,
-                "count_perc": (stats["count"] / total_count) * 100,
+                "time_med": (
+                    statistics.median(stats["request_times"])
+                    if stats["request_times"]
+                    else 0
+                ),
+                "time_perc": (
+                    (stats["time_sum"] / total_time) * 100 if total_time else 0
+                ),
+                "count_perc": (
+                    (stats["count"] / total_count) * 100 if total_count else 0
+                ),
             }
             for url, stats in sorted_urls
         ]
@@ -183,7 +203,7 @@ def main():
 
     except KeyboardInterrupt:
         logger.error("Process interrupted by user (Ctrl+C). Exiting.", exc_info=True)
-    except Exception as e:
+    except Exception:
         logger.error("Unexpected error occurred.", exc_info=True)
 
 
