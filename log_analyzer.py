@@ -71,14 +71,8 @@ def find_last_log(log_dir: str, pattern: str) -> Optional[str]:
     if not files:
         logger.info("No log files found.")
         return None
-    last_log = max(
-        files,
-        key=lambda f: (
-            datetime.strptime(re.match(pattern, f).group(1), "%Y%m%d")
-            if re.match(pattern, f)
-            else ""
-        ),
-    )
+    last_log = max(files, key=lambda f: datetime.strptime(re.match(pattern, f).group(1), "%Y%m%d"))
+
     return os.path.join(log_dir, last_log)
 
 
@@ -176,6 +170,19 @@ def generate_report(log_entries: list, report_dir: str, report_size: int):
     logger.info(f"Report generated: {report_path}")
 
 
+def is_report_exist(report_dir: str, last_log: str) -> bool:
+    last_log_filename = os.path.basename(last_log)  # Получаем только имя файла
+    date_match = re.search(r"(\d{8})", last_log_filename)  # Ищем дату в формате YYYYMMDD
+
+    if not date_match:
+        return False  # Если дату не нашли, считаем, что отчёта нет
+
+    date_str = datetime.strptime(date_match.group(1), "%Y%m%d").strftime("%Y.%m.%d")
+    report_name = f"report-{date_str}.html"
+
+    return report_name in os.listdir(report_dir)
+
+
 # Основной процесс
 def main():
     parser = argparse.ArgumentParser(description="Log Analyzer")
@@ -196,6 +203,12 @@ def main():
 
         if not last_log:
             logger.info("No log files found. Exiting.")
+            return
+
+        has_report = is_report_exist(config["REPORT_DIR"], last_log)
+
+        if has_report:
+            logger.info("The report already exists. Exiting.")
             return
 
         log_entries = parse_log_file(last_log)
